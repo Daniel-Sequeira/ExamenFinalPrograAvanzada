@@ -1,0 +1,196 @@
+<!Doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>Progra Avanzada</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/pricing.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container py-3">
+    <h2 class="mb-3">Directorio</h2>
+    <div class="d-flex align-items-center mb-3" style="gap: 8px;">
+      <input type="text" id="search" class="form-control" placeholder="Buscar por nombre, usuario, email, ciudad o empresa"
+        aria-label="Buscar">
+      <span id="total-registros-badge" class="total-badge">0</span>
+    </div>
+    <div id="cards-container" class="row"></div>
+    <nav>
+      <ul class="pagination justify-content-center" id="pagination"></ul>
+    </nav>
+  </div>
+
+  <script>
+    // Datos ejemplo consultados a una API
+    let personas = []; //array de personas 
+    const perPage = 10;
+    let currentPage = 1;
+    let filtro = '';
+    //Consumir api
+    fetch('https://jsonplaceholder.typicode.com/users')
+      .then(response => response.json())
+      .then(data => {
+        personas = data;
+        renderAll();
+      });
+
+    // Mostrar tarjetas
+    function renderCards() {
+      const cardsContainer = document.getElementById('cards-container');
+      cardsContainer.innerHTML = '';
+      const filtered = getFiltered();
+      const start = (currentPage - 1) * perPage;
+      const personasToShow = filtered.slice(start, start + perPage);
+      if (personasToShow.length === 0) {
+        cardsContainer.innerHTML = '<div class="col-12 text-center text-muted">No se encontraron resultados</div>';
+        return;
+      }
+
+      personasToShow.forEach((p) => {
+        cardsContainer.innerHTML += `
+    <div class="col-md-6 col-lg-4">
+      <div class="card profile-card p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex align-items-center mb-2">
+            <div class="profile-avatar me-2">${iniciales(p.name)}</div>
+            <div>
+              <div class="fw-bold">${p.name}</div>
+              <div class="text-muted small">@${p.username}</div>
+            </div>
+          </div>
+          <div class="mb-1 card-email">Email: <a href="mailto:${p.email}">${p.email}</a></div>
+          <div class="mb-1">Tel: ${p.phone}</div>
+          <div class="mb-1">Ciudad: ${p.address.city}</div>
+          <div>Web: <a href="http://${p.website}" target="_blank">${p.website}</a></div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-outline-primary flex-fill" onclick="showMap('${p.name.replace(/'/g, "\\'")}', '${p.address.geo.lat}', '${p.address.geo.lng}')">Ver mapa</button>
+          <button class="btn btn-primary flex-fill" onclick='showCompany(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Ver empresa</button>
+        </div>
+      </div>
+    </div>
+  `;
+      });
+    }
+
+    function renderPagination() {
+      const filtered = getFiltered();
+      const totalPages = Math.ceil(filtered.length / perPage);
+      const pag = document.getElementById('pagination');
+      pag.innerHTML = '';
+      if (totalPages <= 1) return;
+      for (let i = 1; i <= totalPages; i++) {
+        pag.innerHTML += `<li class="page-item${i === currentPage ? ' active' : ''}">
+        <button class="page-link" onclick="gotoPage(${i})">${i}</button>
+      </li>`;
+      }
+    }
+
+    function gotoPage(page) {
+      currentPage = page;
+      renderCards();
+      renderPagination();
+    }
+
+    function getFiltered() {
+      if (!filtro) return personas;
+      return personas.filter(p => (
+        p.name.toLowerCase().includes(filtro) ||
+        p.username.toLowerCase().includes(filtro) ||
+        p.email.toLowerCase().includes(filtro) ||
+        p.address.city.toLowerCase().includes(filtro) ||
+        (p.company?.name || '').toLowerCase().includes(filtro)
+      ));
+    }
+
+    function iniciales(nombre) {
+      if (!nombre || typeof nombre !== 'string') return '';
+      return nombre.split(' ').map(x => x[0]).join('').toUpperCase();
+    }
+    // Buscador
+    document.getElementById('search').addEventListener('input', e => {
+      filtro = e.target.value.trim().toLowerCase();
+      currentPage = 1;
+      renderAll();
+    });
+    //COntador de registros
+   function renderTotalRegistros() {
+  const filtered = getFiltered();
+  document.getElementById('total-registros-badge').textContent = filtered.length;
+}
+
+    // Inicializa
+    function renderAll() { renderCards(); renderPagination(); renderTotalRegistros(); }
+    // Hacer gotoPage accesible global
+    window.gotoPage = gotoPage;
+
+    // Mostrar mapa con geolocalización
+    function showMap(name, lat, lng) {
+      document.getElementById('mapUser').textContent = name;
+      const mapURL = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+      document.getElementById('modalMapBody').innerHTML = `<iframe width="100%" height="250" style="border:0" loading="lazy" src="${mapURL}"></iframe>
+    <div class="text-muted small mt-2">Latitud: ${lat}, Longitud: ${lng}</div>`;
+      new bootstrap.Modal(document.getElementById('mapModal')).show();
+    }
+
+    // Mostrar empresa
+    function showCompany(pJson) {
+      let p;
+      // Si recibimos string, parsea, si objeto, usa directo
+      if (typeof pJson === 'string') p = JSON.parse(pJson.replace(/&apos;/g, "'"));
+      else p = pJson;
+
+      document.getElementById('companyUser').textContent = p.name;
+      document.getElementById('modalCompanyBody').innerHTML = `
+    <div>
+      <div><b>Empresa:</b> ${p.company?.name || ''}</div>
+      <div><b>Eslogan:</b> <i>${p.company?.catchPhrase || ''}</i></div>
+      <div><b>Rubro:</b> ${p.company?.bs || ''}</div>
+      <div class="mt-2"><b>Email:</b> <a href="mailto:${p.email}">${p.email}</a></div>
+      <div><b>Teléfono:</b> ${p.phone}</div>
+      <div><b>Web:</b> <a href="http://${p.website}" target="_blank">${p.website}</a></div>
+      <div class="mt-2"><b>Ciudad:</b> ${p.address?.city || ''}</div>
+      <div><b>Dirección:</b> ${[p.address?.street, p.address?.suite, p.address?.zipcode].filter(Boolean).join(', ')}</div>
+    </div>
+  `;
+      new bootstrap.Modal(document.getElementById('companyModal')).show();
+    }
+  </script>
+  <script src="js/bootstrap.bundle.min.js"></script>
+
+
+  <!-- Modal Mapa -->
+  <div class="modal fade" id="mapModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Ubicación de <span id="mapUser"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="modalMapBody" style="text-align:center;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Empresa -->
+  <div class="modal fade" id="companyModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Empresa de <span id="companyUser"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="modalCompanyBody">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

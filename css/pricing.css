@@ -1,0 +1,49 @@
+body {
+  background-image: linear-gradient(180deg, #eee, #fff 100px, #fff);
+}
+
+.container {
+  max-width: 960px;
+}
+
+.pricing-header {
+  max-width: 700px;
+}
+
+.profile-card {
+  min-height: 210px;
+  margin-bottom: 1rem;
+}
+
+.profile-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  color: #495057;
+  font-weight: bold;
+  margin-right: 12px;
+}
+
+.card-email {
+  overflow-wrap: break-word;
+}
+
+.total-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #222;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-left: 6px;
+}
